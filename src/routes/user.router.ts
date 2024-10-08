@@ -1,14 +1,14 @@
 import { Router, Request, Response } from "express";
 
-import { closeSession, openSession } from "../config/conection.mongo";
 import userModel from "../modules/user/user.module";
 import { loginSchema, payload_login } from "../schema/user.schema";
 import { validade } from "../middlewares/validation.middlewares";
 import { userSchema } from "../schema/user.schema";
 import bcrypt from "bcryptjs";
 import generateToken from "../service/auth.service";
+import { authMiddleware } from "../middlewares/auth.middlewares";
 
-interface User {
+export interface User {
   _id: String;
   email: String;
   password: String;
@@ -17,8 +17,17 @@ interface User {
   __v: Number;
 }
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
+
 const router = Router();
 
+// login
 router.post(
   "/login",
   validade(loginSchema),
@@ -27,12 +36,11 @@ router.post(
 
     if (!email || !password) {
       res.status(403).json({
-        message: "Email or password invalid",
+        message: "erro informe as credenciais",
       });
     }
-    try {
-      await openSession();
 
+    try {
       const user = (await userModel.findOne({ email })) as User;
       if (!user?.password) {
         res.status(400).json({ message: "user not exists" });
@@ -48,18 +56,16 @@ router.post(
         res.status(200).json({
           message: "Sucesso!",
           token: generateToken(user._id as string),
-          expiresIn: 86400
+          expiresIn: 86400,
         });
       }
     } catch (err) {
       res.status(500).json({ message: "Error creating user", err });
       return;
-    } finally {
-      await closeSession();
     }
   }
 );
-
+// criar usuario
 router.post(
   "/user",
   validade(userSchema),
@@ -77,7 +83,6 @@ router.post(
 
     try {
       //abre conexão com banco
-      await openSession();
       //valida se o email cadastrado já esta em uso
       const validaEmail = await userModel.findOne({ email });
       if (validaEmail) {
@@ -103,10 +108,14 @@ router.post(
       console.log("erro", err);
       res.status(500).json({ message: "Error creating user", err });
       return;
-    } finally {
-      await closeSession();
     }
   }
 );
+
+router.get("/user", authMiddleware, async (req: Request, res: Response) => {
+  const user = req.user;
+
+  res.status(200).json(user);
+});
 
 export default router;
