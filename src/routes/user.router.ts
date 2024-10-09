@@ -34,7 +34,7 @@ router.post(
   validade(loginSchema),
   async (req: Request, res: Response) => {
     const { email, password } = req.body;
-
+    const lowCaseEmail = email.toLowerCase();
     if (!email || !password) {
       res.status(403).json({
         message: "erro informe as credenciais",
@@ -42,7 +42,7 @@ router.post(
     }
 
     try {
-      const user = (await userModel.findOne({ email })) as User;
+      const user = (await userModel.findOne({ email: lowCaseEmail })) as User;
       if (!user?.password) {
         res.status(400).json({ message: "user not exists" });
         return;
@@ -81,11 +81,11 @@ router.post(
       });
       return;
     }
-
+    const lowCaseEmail = email.toLowerCase();
     try {
-      //abre conexão com banco
+      const validaEmail = await userModel.findOne({ email: lowCaseEmail });
       //valida se o email cadastrado já esta em uso
-      const validaEmail = await userModel.findOne({ email });
+
       if (validaEmail) {
         res.status(400).json({ message: "email already used!" });
         return;
@@ -93,8 +93,8 @@ router.post(
       // faz a criptografia da senha
       const passHash: string = bcrypt.hashSync(password, 10);
       const newUser: payload_login = {
-        name: req.body.name,
-        email: req.body.email,
+        name: name,
+        email: lowCaseEmail,
         password: passHash,
       };
 
@@ -105,7 +105,7 @@ router.post(
         id: user._id,
         createdAt: user.createdAt,
       });
-    } catch (err) {
+    } catch (err: Error | any) {
       res.status(500).json({ message: "Error creating user", err });
       return;
     }
@@ -113,7 +113,7 @@ router.post(
 );
 
 router.get("/users", authMiddleware, async (req: Request, res: Response) => {
-  const user = req.user;
+  // const user = req.user;
 
   try {
     const users = await userModel.find().lean().select("-password -__v");
@@ -122,5 +122,36 @@ router.get("/users", authMiddleware, async (req: Request, res: Response) => {
     res.status(400).json({ message: err.message });
   }
 });
+
+router.get(
+  "/users/:id",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    const userId = req.params.id;
+
+    try {
+      // populate tras os dados que estao vinculados por id
+      // posso passar argumentos dentro do populate(
+      // path: "books",
+      // select: "title isbn publishedDate",)
+      const user = await userModel
+        .findById(userId)
+        .populate({
+          path: "books",
+          select: "-author -__v",
+        })
+        .select("-password -__v");
+
+      if (!user) {
+        res.status(404).json({
+          message: "user not found",
+        });
+      }
+      res.status(200).json(user);
+    } catch (err: Error | any) {
+      res.status(500).json({ message: "Error fetching user", err });
+    }
+  }
+);
 
 export default router;

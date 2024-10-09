@@ -1,13 +1,36 @@
 import { Router, Request, Response } from "express";
-import booksModel from "../modules/user/books.module";
+import booksModel from "../modules/books/books.module";
 import { authMiddleware } from "../middlewares/auth.middlewares";
 import userModel from "../modules/user/user.module";
+
+interface book {
+  title: string;
+  num_page: number;
+  isbn: string;
+  publisher: string;
+  author: string;
+}
 
 const router = Router();
 
 router.post("/books", authMiddleware, async (req: Request, res: Response) => {
   const userId = req.user?._id;
-  const books = req.body;
+  const books: book = req.body;
+
+  if (!books.title || !books.isbn || !books.num_page || !books.publisher) {
+    res.status(403).json({
+      message: `${
+        !books.title
+          ? "Title"
+          : !books.isbn
+          ? "isbn"
+          : !books.num_page
+          ? "num_page"
+          : "publisher"
+      } is not found`,
+    });
+    return;
+  }
 
   try {
     const booksCreate = await booksModel.create({
@@ -30,6 +53,26 @@ router.post("/books", authMiddleware, async (req: Request, res: Response) => {
   } catch (err: Error | any) {
     res.status(500).json({ message: "Error creating user", err });
     return;
+  }
+});
+
+router.get("/books", authMiddleware, async (_: Request, res: Response) => {
+  try {
+    const books = await booksModel
+      .find()
+      .populate({ path: "author", select: "-books -__v -createdAt -updatedAt" })
+      .lean().select('-__v')
+    if (!books) {
+      res.status(404).json({
+        message: "not found",
+      });
+    }
+
+    res.status(200).json({ books });
+  } catch (err: Error | any) {
+    res.status(500).json({
+      message: "erro" + err,
+    });
   }
 });
 
