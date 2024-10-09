@@ -14,6 +14,7 @@ export interface User {
   password: String;
   createdAt: Date;
   updatedAt: Date;
+  books: string[];
   __v: Number;
 }
 
@@ -105,17 +106,21 @@ router.post(
         createdAt: user.createdAt,
       });
     } catch (err) {
-      console.log("erro", err);
       res.status(500).json({ message: "Error creating user", err });
       return;
     }
   }
 );
 
-router.get("/user", authMiddleware, async (req: Request, res: Response) => {
+router.get("/users", authMiddleware, async (req: Request, res: Response) => {
   const user = req.user;
 
-  res.status(200).json(user);
+  try {
+    const users = await userModel.find().lean().select("-password -__v");
+    res.status(200).json({ users });
+  } catch (err: Error | any) {
+    res.status(400).json({ message: err.message });
+  }
 });
 
 export default router;
