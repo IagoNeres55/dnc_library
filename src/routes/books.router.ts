@@ -10,6 +10,16 @@ interface book {
   publisher: string;
   author: string;
 }
+interface bookReturn {
+  _id: string;
+  title: string;
+  num_page: number;
+  isbn: string;
+  publisher: string;
+  author: string;
+  createdAt: Date;
+  updateAt: Date;
+}
 
 const router = Router();
 
@@ -61,11 +71,13 @@ router.get("/books", authMiddleware, async (_: Request, res: Response) => {
     const books = await booksModel
       .find()
       .populate({ path: "author", select: "-books -__v -createdAt -updatedAt" })
-      .lean().select('-__v')
+      .lean()
+      .select("-__v");
     if (!books) {
       res.status(404).json({
         message: "not found",
       });
+      return;
     }
 
     res.status(200).json({ books });
@@ -75,5 +87,58 @@ router.get("/books", authMiddleware, async (_: Request, res: Response) => {
     });
   }
 });
+
+router.delete(
+  "/books/:id",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    const bookId = req.params.id;
+
+    const idToken = req.user?._id;
+
+    try {
+      const books: bookReturn | any = await booksModel.findById(bookId).lean();
+      if (!books) {
+        res.status(400).json({
+          message: "livro nao encontrado",
+        });
+        return;
+      }
+
+      if (idToken?.toString() !== books.author?.toString()) {
+        res.status(404).json({ message: "Not autorized" });
+        return;
+      }
+      // deleta o livro
+      const deleteBook = await booksModel.deleteOne(books._id);
+
+      if (deleteBook.deletedCount === 0) {
+        res.status(500).json({
+          message: "erro ao deletar item",
+        });
+        return;
+      }
+
+      // Remover o ID do livro do campo 'books' no documento do usuário
+      const deleteUsersBookId = await userModel.findByIdAndUpdate(
+        idToken,
+        {
+          $pull: { books: bookId },
+        },
+        {
+          new: true,
+        }
+      );
+
+      console.log(deleteUsersBookId);
+
+      res.status(200).json({ message: "book deletado com sucesso" });
+    } catch (err: Error | any) {
+      res.status(500).json({
+        message: "erro" + err,
+      });
+    }
+  }
+);
 
 export default router;
