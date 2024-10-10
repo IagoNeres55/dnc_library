@@ -93,9 +93,7 @@ router.delete(
   authMiddleware,
   async (req: Request, res: Response) => {
     const bookId = req.params.id;
-
     const idToken = req.user?._id;
-
     try {
       const books: bookReturn | any = await booksModel.findById(bookId).lean();
       if (!books) {
@@ -130,12 +128,70 @@ router.delete(
         }
       );
 
-      console.log(deleteUsersBookId);
+      if (!deleteUsersBookId) {
+        res.status(500).json({
+          message: "erro ao buscar id em users [book]",
+        });
+        return;
+      }
 
       res.status(200).json({ message: "book deletado com sucesso" });
     } catch (err: Error | any) {
       res.status(500).json({
         message: "erro" + err,
+      });
+    }
+  }
+);
+
+router.put(
+  "/books/:id",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    const bookId = req.params.id;
+    const book = req.body;
+
+    const validFields = ["title", "num_page", "isbn", "publisher"];
+
+    // Verificar se existem campos inesperados
+    const invalidFields = Object.keys(book).filter(
+      (field) => !validFields.includes(field)
+    );
+
+    if (invalidFields.length > 0) {
+      res.status(400).json({
+        message: `Campo no formato errado!: ${invalidFields.join(
+          ", "
+        )}`,
+      });
+      return;
+    }
+
+    const payloadBook = {
+      title: book.title,
+      num_page: book.num_page,
+      isbn: book.isbn,
+      publisher: book.publisher,
+    };
+
+    try {
+      const updateBook = await booksModel.findByIdAndUpdate(
+        bookId,
+        {
+          $set: payloadBook,
+        },
+        { new: true, strict: true }
+      );
+      if (!updateBook) {
+        res.status(404).json({
+          message: "erro ao editar o livro",
+        });
+        return;
+      }
+      res.status(200).json({ message: "sucesso", updateBook });
+    } catch (err: Error | any) {
+      res.status(500).json({
+        message: "erro" + err.message,
       });
     }
   }

@@ -39,6 +39,7 @@ router.post(
       res.status(403).json({
         message: "erro informe as credenciais",
       });
+      return;
     }
 
     try {
@@ -53,13 +54,11 @@ router.post(
         return;
       }
 
-      if (userSenha) {
-        res.status(200).json({
-          message: "Sucesso!",
-          token: generateToken(user._id as string),
-          expiresIn: 86400,
-        });
-      }
+      res.status(200).json({
+        message: "Sucesso!",
+        token: generateToken(user._id as string),
+        expiresIn: 86400,
+      });
     } catch (err) {
       res.status(500).json({ message: "Error creating user", err });
       return;
@@ -146,6 +145,7 @@ router.get(
         res.status(404).json({
           message: "user not found",
         });
+        return;
       }
       res.status(200).json(user);
     } catch (err: Error | any) {
