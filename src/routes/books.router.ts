@@ -66,7 +66,7 @@ router.post("/books", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-router.get("/books", authMiddleware, async (_: Request, res: Response) => {
+router.get("/books", async (_: Request, res: Response) => {
   try {
     const books = await booksModel
       .find()
