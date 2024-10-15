@@ -9,9 +9,9 @@ dotenv.config();
 const port = process.env.PORT || 3001;
 
 const corsOptions: CorsOptions = {
-  origin: "http://example.com", // Define a origem permitida
-  methods: ["GET", "POST"], // Define métodos permitidos
-  allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos permitidos
+  origin: ["http://example.com", "http://localhost:3000", "https://meu-site.com"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 const app: Express = express();
@@ -21,7 +21,6 @@ conectionDB();
 
 app.use(userRouter);
 app.use(booksRouter);
-
 
 app.listen(port, () => {
   console.log("server is running", port);
