@@ -3,6 +3,7 @@ import "dotenv/config";
 
 const url: string = process.env.MONGODB_URI || "";
 
+
 // mongoose
 //   .connect(url)
 //   .then(() => {
@@ -22,7 +23,7 @@ const conectionDB = async () => {
     console.log("Conexão com o banco feita com sucesso!");
   } catch (err) {
     console.error("Falha ao tentar concetar com o banco", err);
-    throw err;
+    throw new Error(err as string);
   }
 };
 export default conectionDB;
