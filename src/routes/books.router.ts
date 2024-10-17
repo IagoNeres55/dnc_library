@@ -88,6 +88,25 @@ router.get("/books", async (_: Request, res: Response) => {
   }
 });
 
+router.get("/books/:id", async (req: Request, res: Response) => {
+  const bookId = req.params.id;
+  try {
+    const books = await booksModel.findById(bookId).lean();
+    if (!books) {
+      res.status(404).json({
+        message: "not found",
+      });
+      return;
+    }
+
+    res.status(200).json({ books });
+  } catch (err: Error | any) {
+    res.status(500).json({
+      message: "erro" + err,
+    });
+  }
+});
+
 router.delete(
   "/books/:id",
   authMiddleware,
@@ -160,9 +179,7 @@ router.put(
 
     if (invalidFields.length > 0) {
       res.status(400).json({
-        message: `Campo no formato errado!: ${invalidFields.join(
-          ", "
-        )}`,
+        message: `Campo no formato errado!: ${invalidFields.join(", ")}`,
       });
       return;
     }
