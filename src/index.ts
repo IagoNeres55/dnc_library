@@ -9,7 +9,7 @@ dotenv.config();
 const port = process.env.PORT || 3001;
 
 const corsOptions: CorsOptions = {
-  origin: ["http://example.com", "http://localhost:3000", "https://dnc-library.onrender.com"],
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
